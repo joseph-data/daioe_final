@@ -57,11 +57,23 @@ def load_data() -> Dict[str, pd.DataFrame]:
             if not path.exists():
                 continue
             df = pd.read_csv(path)
+
+            # Add weighting metadata (no visual change, used only for filtering)
             df["weighting"] = suffix
             df["weighting_label"] = label
             dfs.append(df)
+
         if dfs:
-            frames[taxonomy] = pd.concat(dfs, ignore_index=True)
+            full = pd.concat(dfs, ignore_index=True)
+
+            # Light type normalization (helps performance, no visual impact)
+            if "year" in full.columns:
+                full["year"] = full["year"].astype(int)
+            if "level" in full.columns:
+                full["level"] = full["level"].astype(int)
+
+            frames[taxonomy] = full
+
     if not frames:
         raise FileNotFoundError(
             "No aggregated DAIOE datasets found. Run main.py to regenerate them."
@@ -152,6 +164,112 @@ ui.page_opts(
     theme=theme.flatly,
 )
 
+# ---------------------------------------------------------------------------
+# Reactive helpers
+# ---------------------------------------------------------------------------
+
+
+@reactive.calc
+def metric_name() -> str:
+    return f"daioe_{input.metric()}"
+
+
+@reactive.calc
+def metric_label() -> str:
+    return metric_mapping()[input.metric()]
+
+
+@reactive.calc
+def current_data() -> pd.DataFrame:
+    """
+    Base filtered dataset for the current taxonomy, weighting, and level.
+    This is the 'structural' filter and is reused by downstream reactives.
+    """
+    taxonomy = input.taxonomy()
+    if taxonomy not in DATA:
+        return pd.DataFrame()
+
+    df = DATA[taxonomy]
+
+    level = int(input.level())
+    weight = input.weighting()
+
+    # Filter once here instead of repeatedly in downstream logic
+    df = df[(df["weighting"] == weight) & (df["level"] == level)]
+
+    return df
+
+
+@reactive.calc
+def filtered_data() -> pd.DataFrame:
+    """
+    Further filters current_data() by metric availability, year range,
+    search term, and top_n selection.
+    """
+    df = current_data()
+    if df.empty:
+        return df
+
+    metric_col = metric_name()
+
+    # Keep only rows with valid metric values
+    df = df.dropna(subset=[metric_col])
+
+    # Year range filter
+    year_min, year_max = input.year_range()
+    df = df[(df["year"] >= year_min) & (df["year"] <= year_max)]
+
+    # Search filter (occupation label in Swedish)
+    search_term = input.search().strip().lower()
+    if search_term:
+        labels = df["label"].astype(str).str.lower()
+        df = df[labels.str.contains(search_term, na=False)]
+
+    if df.empty:
+        return df
+
+    # Top-N by latest year metric value
+    latest_year = df["year"].max()
+    latest_slice = df[df["year"] == latest_year].sort_values(
+        metric_col,
+        ascending=not input.sort_desc(),
+    )
+
+    top_n = input.top_n()
+    if top_n > 0:
+        latest_slice = latest_slice.head(top_n)
+
+    keep_codes = latest_slice["code"].unique()
+    df = df[df["code"].isin(keep_codes)]
+
+    return df
+
+
+@reactive.calc
+def latest_order() -> List[str]:
+    """
+    Provides a consistent ordering of occupations (labels) based on
+    the latest year and the chosen sort direction.
+    This is shared by both the trend and bar plots.
+    """
+    df = filtered_data()
+    if df.empty:
+        return []
+
+    metric_col = metric_name()
+    latest_year = df["year"].max()
+    ascending = not input.sort_desc()
+
+    latest_slice = df[df["year"] == latest_year].sort_values(
+        metric_col, ascending=ascending
+    )
+
+    return latest_slice["label"].tolist()
+
+
+# ---------------------------------------------------------------------------
+# Main UI cards & plots
+# ---------------------------------------------------------------------------
 with ui.card(full_screen=True):
     ui.card_header("Trend by occupation")
 
@@ -160,21 +278,15 @@ with ui.card(full_screen=True):
         df = filtered_data()
         if df.empty:
             return px.line()
+
         metric_col = metric_name()
-        ascending = not input.sort_desc()
-        latest_year = df["year"].max()
-        order = (
-            df[df["year"] == latest_year]
-            .sort_values(metric_col, ascending=ascending)["label"]
-            .tolist()
-        )
         fig = px.line(
             df,
             x="year",
             y=metric_col,
             color="label",
-            markers=True,
-            category_orders={"label": order},
+            markers=True,  # kept for identical look
+            category_orders={"label": latest_order()},
             labels={
                 "label": "Occupation",
                 "year": "Year",
@@ -193,13 +305,16 @@ with ui.card(full_screen=True):
         df = filtered_data()
         if df.empty:
             return px.bar()
+
         metric_col = metric_name()
-        ascending = not input.sort_desc()
         latest = df["year"].max()
-        latest_df = df[df["year"] == latest].sort_values(
-            metric_col, ascending=ascending
-        )
-        order = latest_df["label"].tolist()
+        latest_df = df[df["year"] == latest]
+
+        order = latest_order()
+        # Reorder rows to match the order list if not empty
+        if order:
+            latest_df = latest_df.set_index("label").loc[order].reset_index()
+
         fig = px.bar(
             latest_df,
             x=metric_col,
@@ -209,63 +324,6 @@ with ui.card(full_screen=True):
             labels={"label": "Occupation", metric_col: metric_label()},
         )
         return fig
-
-
-# ---------------------------------------------------------------------------
-# Reactive helpers
-# ---------------------------------------------------------------------------
-@reactive.Calc
-def current_data() -> pd.DataFrame:
-    taxonomy = input.taxonomy()
-    if taxonomy not in DATA:
-        return pd.DataFrame()
-    return DATA[taxonomy].copy()
-
-
-@reactive.Calc
-def metric_name() -> str:
-    return f"daioe_{input.metric()}"
-
-
-@reactive.Calc
-def metric_label() -> str:
-    return metric_mapping()[input.metric()]
-
-
-@reactive.Calc
-def filtered_data() -> pd.DataFrame:
-    df = current_data()
-    if df.empty:
-        return df
-
-    metric_col = metric_name()
-    level = int(input.level())
-    weight = input.weighting()
-    df = df[(df["weighting"] == weight) & (df["level"] == level)].copy()
-    df = df.dropna(subset=[metric_col])
-
-    year_min, year_max = input.year_range()
-    df = df[(df["year"] >= year_min) & (df["year"] <= year_max)]
-
-    search_term = input.search().strip().lower()
-    if search_term:
-        df = df[df["label"].str.lower().str.contains(search_term, na=False)]
-
-    # Determine which occupations to show based on latest year values
-    if not df.empty:
-        latest_year = df["year"].max()
-        latest_slice = df[df["year"] == latest_year].sort_values(
-            metric_col,
-            ascending=not input.sort_desc(),
-        )
-        top_n = input.top_n()
-        if top_n > 0:
-            keep_codes = latest_slice.head(top_n)["code"].tolist()
-        else:
-            keep_codes = latest_slice["code"].tolist()
-        df = df[df["code"].isin(keep_codes)]
-
-    return df
 
 
 if __name__ == "__main__":

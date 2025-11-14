@@ -45,6 +45,7 @@ LEVEL_OPTIONS = [
     ("Level 2 (2-digit)", 2),
     ("Level 1 (1-digit)", 1),
 ]
+LEVEL_LABELS = {value: label for label, value in LEVEL_OPTIONS}
 
 
 def load_data() -> Dict[str, pd.DataFrame]:
@@ -101,6 +102,27 @@ def weighting_mapping() -> Dict[str, str]:
 
 def taxonomy_mapping() -> Dict[str, str]:
     return {value: label for label, value in TAXONOMY_OPTIONS}
+
+
+@reactive.calc
+def chart_title() -> str:
+    """
+    Shared chart title that captures the current metric, taxonomy, weighting,
+    level, and the latest year available in the filtered data.
+    """
+    df = filtered_data()
+    latest_year = int(df["year"].max()) if not df.empty else None
+
+    metric_text = metric_label()
+    weight_label = weighting_mapping().get(input.weighting(), input.weighting())
+    taxonomy_label = taxonomy_mapping().get(input.taxonomy(), input.taxonomy())
+    level_value = int(input.level())
+    group_label = LEVEL_LABELS.get(level_value, f"Level {level_value}")
+
+    base = f"{metric_text} ({weight_label}, {taxonomy_label}) — {group_label}"
+    if latest_year is None:
+        return base
+    return f"{base} in {latest_year}"
 
 
 # ---------------------------------------------------------------------------
@@ -293,7 +315,7 @@ with ui.card(full_screen=True):
                 metric_col: metric_label(),
             },
         )
-        fig.update_layout(hovermode="x unified")
+        fig.update_layout(hovermode="x unified", title=chart_title())
         return fig
 
 
@@ -323,6 +345,7 @@ with ui.card(full_screen=True):
             category_orders={"label": order},
             labels={"label": "Occupation", metric_col: metric_label()},
         )
+        fig.update_layout(title=chart_title())
         return fig
 
 

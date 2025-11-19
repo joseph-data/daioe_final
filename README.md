@@ -1,5 +1,5 @@
 ---
-title: Shiny
+title: DAIOE Explorer
 emoji: 🌍
 colorFrom: yellow
 colorTo: indigo

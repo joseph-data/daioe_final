@@ -17,7 +17,7 @@ DATA_DIR = Path(__file__).resolve().parent / "data" / "03_daioe_aggregated"
 
 TAXONOMY_OPTIONS = [
     ("🇸🇪 SSYK 2012", "ssyk2012"),
-    ("🇸🇪 SSY 1996", "ssyk96"),
+    ("🇸🇪 SSYK 1996", "ssyk96"),
 ]
 
 METRIC_OPTIONS: List[Tuple[str, str]] = [

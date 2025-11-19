@@ -73,6 +73,7 @@ notebook==7.4.7
 notebook-shim==0.2.4
 numpy==2.3.4
 orjson==3.11.4
+openpyxl==3.1.5
 packaging==25.0
 palmerpenguins==0.1.4
 pandas==2.3.3

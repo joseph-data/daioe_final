@@ -181,29 +181,30 @@ with ui.sidebar(open="open"):
 
     ui.input_switch("sort_desc", "Sort descending", value=DEFAULT_SORT_DESC)
     ui.input_text("search", "Search occupation", placeholder="e.g. statistician")
-    ui.markdown(
-        """
+    with ui.popover(id="help_popover", title="How to Use"):
+        ui.input_action_button("show_help", "🧭 How to Use", class_="btn btn-link p-0")
+        ui.markdown(
+            """
 <div style="
-    padding:14px 16px;
-    border-left:4px solid #0dcaf0;
+    padding:12px 14px;
+    margin-top:8px;
     background:#f8fdff;
-    margin-top:12px;
+    border-left:4px solid #0dcaf0;
     border-radius:4px;
 ">
-  <div style="font-size:1.05em; font-weight:600; margin-bottom:6px;">
-    🧭 How to Use This Dashboard
-  </div>
-
-  <ul style="margin:0 0 0 18px; padding:0;">
-    <li><strong>Taxonomy & Level:</strong> Choose the occupational classification and digit depth.</li>
-    <li><strong>Sub-index & Weighting:</strong> Pick the DAIOE metric and select employment-weighted or simple-average values.</li>
-    <li><strong>Year range:</strong> Adjust the time window; the bar chart always uses the most recent year in view.</li>
-    <li><strong>Top N:</strong> Limit shown occupations (0 shows all); sorting follows the toggle.</li>
+  <ul style="margin:0 0 0 16px; padding:0;">
+    <li><strong>Taxonomy:</strong> Pick the occupational classification (SSYK 2012/1996).</li>
+    <li><strong>Level:</strong> Choose the digit depth; higher numbers show more granular occupations.</li>
+    <li><strong>Sub-index:</strong> Select which DAIOE metric to plot.</li>
+    <li><strong>Weighting:</strong> Switch between employment-weighted values and simple averages.</li>
+    <li><strong>Year range:</strong> Adjust the time window; the bar chart uses the latest year in view.</li>
+    <li><strong>Top N:</strong> Limit occupations displayed (0 shows all).</li>
+    <li><strong>Sort direction:</strong> Toggle ascending/descending for rankings.</li>
     <li><strong>Search:</strong> Filter occupations by name.</li>
   </ul>
 </div>
-        """
-    )
+            """
+        )
 
 
 ui.page_opts(

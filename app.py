@@ -180,9 +180,7 @@ with ui.sidebar(open="open"):
     )
 
     ui.input_switch("sort_desc", "Sort descending", value=DEFAULT_SORT_DESC)
-    ui.input_text(
-        "search", "Search occupation (Swedish)", placeholder="e.g. statistiker"
-    )
+    ui.input_text("search", "Search occupation", placeholder="e.g. statistician")
 
 
 ui.page_opts(

@@ -206,6 +206,11 @@ def metric_label() -> str:
 
 
 @reactive.calc
+def percentile_metric_name() -> str:
+    return f"pct_rank_{input.metric()}"
+
+
+@reactive.calc
 def current_data() -> pd.DataFrame:
     """
     Base filtered dataset for the current taxonomy, weighting, and level.
@@ -332,7 +337,7 @@ with ui.card(full_screen=True):
         if df.empty:
             return px.bar()
 
-        metric_col = metric_name()
+        metric_col = percentile_metric_name()
         latest = df["year"].max()
         latest_df = df[df["year"] == latest]
 
@@ -347,9 +352,13 @@ with ui.card(full_screen=True):
             y="label",
             orientation="h",
             category_orders={"label": order},
-            labels={"label": "Occupation", metric_col: metric_label()},
+            labels={
+                "label": "Occupation",
+                metric_col: f"{metric_label()} (percentile rank)",
+            },
         )
         fig.update_layout(title=chart_title())
+        fig.update_xaxes(range=[0, 1], tickformat=".0%")
         return fig
 
 

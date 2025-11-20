@@ -135,7 +135,7 @@ def chart_title() -> str:
 # Sidebar UI
 # ---------------------------------------------------------------------------
 with ui.sidebar(open="open"):
-    ui.input_select(
+    ui.input_radio_buttons(
         "taxonomy",
         "Taxonomy",
         taxonomy_mapping(),
@@ -181,6 +181,29 @@ with ui.sidebar(open="open"):
 
     ui.input_switch("sort_desc", "Sort descending", value=DEFAULT_SORT_DESC)
     ui.input_text("search", "Search occupation", placeholder="e.g. statistician")
+    ui.markdown(
+        """
+<div style="
+    padding:14px 16px;
+    border-left:4px solid #0dcaf0;
+    background:#f8fdff;
+    margin-top:12px;
+    border-radius:4px;
+">
+  <div style="font-size:1.05em; font-weight:600; margin-bottom:6px;">
+    🧭 How to Use This Dashboard
+  </div>
+
+  <ul style="margin:0 0 0 18px; padding:0;">
+    <li><strong>Taxonomy & Level:</strong> Choose the occupational classification and digit depth.</li>
+    <li><strong>Sub-index & Weighting:</strong> Pick the DAIOE metric and select employment-weighted or simple-average values.</li>
+    <li><strong>Year range:</strong> Adjust the time window; the bar chart always uses the most recent year in view.</li>
+    <li><strong>Top N:</strong> Limit shown occupations (0 shows all); sorting follows the toggle.</li>
+    <li><strong>Search:</strong> Filter occupations by name.</li>
+  </ul>
+</div>
+        """
+    )
 
 
 ui.page_opts(

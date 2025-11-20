@@ -46,6 +46,7 @@ LEVEL_OPTIONS = [
     ("Level 1 (1-digit)", 1),
 ]
 LEVEL_LABELS = {value: label for label, value in LEVEL_OPTIONS}
+LEVEL_CHOICES = {str(value): label for label, value in LEVEL_OPTIONS}
 
 
 def load_data() -> Dict[str, pd.DataFrame]:
@@ -89,7 +90,12 @@ ALL_YEARS = sorted(
 )
 GLOBAL_YEAR_MIN = ALL_YEARS[0]
 GLOBAL_YEAR_MAX = ALL_YEARS[-1]
-DEFAULT_YEAR_START = max(GLOBAL_YEAR_MIN, GLOBAL_YEAR_MAX - 8)
+DEFAULT_TAXONOMY = "ssyk2012"
+DEFAULT_LEVEL = 3  # Level 3 (3-digit)
+DEFAULT_WEIGHTING = "emp_weighted"
+DEFAULT_YEAR_RANGE = (GLOBAL_YEAR_MIN, GLOBAL_YEAR_MAX)
+DEFAULT_SORT_DESC = True
+DEFAULT_LEVEL_CHOICE = str(DEFAULT_LEVEL)
 
 
 def metric_mapping() -> Dict[str, str]:
@@ -133,13 +139,13 @@ with ui.sidebar(open="open"):
         "taxonomy",
         "Taxonomy",
         taxonomy_mapping(),
-        selected=TAXONOMY_OPTIONS[0][1],
+        selected=DEFAULT_TAXONOMY,
     )
     ui.input_select(
         "level",
         "Level",
-        {str(value): label for label, value in LEVEL_OPTIONS},
-        selected=str(LEVEL_OPTIONS[0][1]),
+        LEVEL_CHOICES,
+        selected=DEFAULT_LEVEL_CHOICE,
     )
     ui.input_select(
         "metric",
@@ -151,7 +157,7 @@ with ui.sidebar(open="open"):
         "weighting",
         "Weighting",
         weighting_mapping(),
-        selected=WEIGHTING_OPTIONS[0][1],
+        selected=DEFAULT_WEIGHTING,
     )
 
     ui.input_slider(
@@ -159,7 +165,7 @@ with ui.sidebar(open="open"):
         "Year range",
         min=GLOBAL_YEAR_MIN,
         max=GLOBAL_YEAR_MAX,
-        value=(DEFAULT_YEAR_START, GLOBAL_YEAR_MAX),
+        value=DEFAULT_YEAR_RANGE,
         step=1,
         sep="",
     )
@@ -173,7 +179,7 @@ with ui.sidebar(open="open"):
         step=1,
     )
 
-    ui.input_switch("sort_desc", "Sort descending", value=False)
+    ui.input_switch("sort_desc", "Sort descending", value=DEFAULT_SORT_DESC)
     ui.input_text(
         "search", "Search occupation (Swedish)", placeholder="e.g. statistiker"
     )

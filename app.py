@@ -479,6 +479,7 @@ with ui.card(full_screen=True):
             return px.bar()
 
         metric_col = percentile_metric_name()
+        raw_col = metric_name()
         latest = df["year"].max()
         latest_df = df[df["year"] == latest]
 
@@ -487,11 +488,18 @@ with ui.card(full_screen=True):
         if order:
             latest_df = latest_df.set_index("label").loc[order].reset_index()
 
+        latest_df = latest_df.copy()
+        latest_df["bar_label"] = latest_df.apply(
+            lambda row: f"{format_raw_value(row[raw_col])} | {format_metric_value(row[metric_col])}",
+            axis=1,
+        )
+
         fig = px.bar(
             latest_df,
             x=metric_col,
             y="label",
             orientation="h",
+            text="bar_label",
             category_orders={"label": order},
             labels={
                 "label": "Occupation",
@@ -499,6 +507,7 @@ with ui.card(full_screen=True):
             },
         )
         fig.update_layout(title=chart_title())
+        fig.update_traces(textposition="inside")
         fig.update_xaxes(range=[0, 1], tickformat=".0%")
         return fig
 
